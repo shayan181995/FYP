@@ -1,5 +1,6 @@
 package com.example.hp.fyp;
 
+import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -43,6 +44,23 @@ public class LoginActivity extends AppCompatActivity {
         password = (EditText) findViewById(R.id.password);
 
         mAuth = FirebaseAuth.getInstance();
+
+        //getting notification data
+        Bundle bundle = getIntent().getExtras();
+        if (bundle != null && bundle.getString("OwnerID") != null) {
+            Intent i = new Intent(LoginActivity.this,Main.class);
+            i.putExtra("UserID",bundle.getString("OwnerID"));
+            i.putExtra("OStartLat",bundle.getString("OStartLat"));
+            i.putExtra("OStartLng",bundle.getString("OStartLng"));
+            i.putExtra("OEndLat",bundle.getString("OEndLat"));
+            i.putExtra("OEndLng",bundle.getString("OEndLng"));
+            i.putExtra("RStartLat",bundle.getString("RStartLat"));
+            i.putExtra("RStartLng",bundle.getString("RStartLng"));
+            i.putExtra("REndLat",bundle.getString("REndLat"));
+            i.putExtra("REndLng",bundle.getString("REndLng"));
+            startActivity(i);
+
+        }
     }
 
     public void login(View view){

@@ -110,10 +110,14 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
     private double StartLng;
     private double EndLat;
     private double EndLng;
+    private Bundle myData;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+        //Make all Trip work continued and pin markers on receving notifications//
+        myData = getIntent().getExtras();
 
 
         //Btn of click
@@ -121,7 +125,7 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
 
         mAuth = FirebaseAuth.getInstance();
         ///Fetching UserID of the user from login or signup page/////////
-        Bundle myData = getIntent().getExtras();
+
         UserID = myData.getString("UserID");
 
         ///////////////////////////
@@ -624,6 +628,11 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
     @Override
     public void onMapReady(final GoogleMap googleMap) {
 
+        LatLng RStartLoc;
+        LatLng REndLoc;
+        LatLng OStartLoc;
+        LatLng OEndLoc;
+        LatLngBounds.Builder Oboundsbuilder = new LatLngBounds.Builder();
         this.googleMap = googleMap;
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
@@ -646,6 +655,27 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                 new LatLng(24, 66),
                 new LatLng(25, 67)));*/
 
+        //adding marker of rider//
+        if(myData.getString("RStartLat")!=null &&myData.getString("OStartLat")!=null) {
+            RStartLoc = new LatLng(Double.parseDouble(myData.getString("RStartLat")), Double.parseDouble(myData.getString("RStartLng")));
+            REndLoc = new LatLng(Double.parseDouble(myData.getString("REndLat")), Double.parseDouble(myData.getString("REndLng")));
+            googleMap.addMarker(new MarkerOptions().position(REndLoc));
+            googleMap.addMarker(new MarkerOptions().position(RStartLoc));
+            OStartLoc = new LatLng(Double.parseDouble(myData.getString("OStartLat")), Double.parseDouble(myData.getString("OStartLng")));
+            OEndLoc = new LatLng(Double.parseDouble(myData.getString("OEndLat")), Double.parseDouble(myData.getString("OEndLng")));
+            Oboundsbuilder.include(OStartLoc);
+            Oboundsbuilder.include(OEndLoc);
+            Oboundsbuilder.include(RStartLoc);
+            Oboundsbuilder.include(REndLoc);
+            int routePadding = 100;
+            LatLngBounds latLngBounds = Oboundsbuilder.build();
+
+            //adding marker at the destination
+            googleMap.addMarker(new MarkerOptions().position(OEndLoc));
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds, routePadding));
+
+        }
+
 
         autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
@@ -660,26 +690,33 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                 mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                         mGoogleApiClient);
 
-                //Draw route(line) from start to end position
-                PolylineOptions rectOptions = new PolylineOptions()
-                        .add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
-                        .add(new LatLng(place.getLatLng().latitude, place.getLatLng().longitude))
-                        .geodesic(true);
-                Polyline polyline = googleMap.addPolyline(rectOptions);
+
 
 
                 //Work for zooming camera position in the route
                 LatLngBounds.Builder boundsbuilder = new LatLngBounds.Builder();
-                LatLng StartLoc = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
-                LatLng EndLoc = new LatLng(place.getLatLng().latitude, place.getLatLng().longitude);
+                LatLng StartLoc;
+                LatLng EndLoc;
+                StartLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                EndLoc = new LatLng(place.getLatLng().latitude, place.getLatLng().longitude);
                 boundsbuilder.include(StartLoc);
                 boundsbuilder.include(EndLoc);
+
+                //Draw route(line) from start to end position
+                PolylineOptions rectOptions = new PolylineOptions()
+                            .add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
+                            .add(new LatLng(place.getLatLng().latitude, place.getLatLng().longitude))
+                            .geodesic(true);
+                Polyline polyline = googleMap.addPolyline(rectOptions);
+
                 int routePadding = 100;
                 LatLngBounds latLngBounds = boundsbuilder.build();
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds,routePadding));
 
                 //adding marker at the destination
                 googleMap.addMarker(new MarkerOptions().position(EndLoc));
+
+
 
         }
 
@@ -720,9 +757,16 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
             geocoder = new Geocoder(this, Locale.getDefault());
 
             try {
-                addresses = geocoder.getFromLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude(), 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
-                LatLng StartLoc = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
-                googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(StartLoc,17));
+                //if(myData.getString("OStartLat")==null) {
+                    addresses = geocoder.getFromLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude(), 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
+                    LatLng StartLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(StartLoc, 17));
+               // }
+                //else{
+                    //addresses = geocoder.getFromLocation(Double.parseDouble(myData.getString("OStartLat")), Double.parseDouble(myData.getString("OStartLng")), 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
+                   // LatLng StartLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                   // googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(StartLoc, 17));
+               // }
 
 
             } catch (IOException e) {
@@ -732,6 +776,7 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
             String address = addresses.get(0).getAddressLine(0);
             edittext.setText(address);
             edittext.setEnabled(false);
+
 
 
 
@@ -778,7 +823,9 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
 
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String prevChildKey) {
-                OwnerRide OR = new OwnerRide(dataSnapshot.getKey(),StartLat,StartLng,EndLat,EndLng,Distance,TotalFare,calendar.getTime(),EndTime.getTime(),"Active");
+                MyFirebaseInstanceIDService FirebaseID = new MyFirebaseInstanceIDService();
+                String PushKey = FirebaseID.sendRegistrationToServer();
+                OwnerRide OR = new OwnerRide(dataSnapshot.getKey(),StartLat,StartLng,EndLat,EndLng,Distance,TotalFare,calendar.getTime(),EndTime.getTime(),"Active",PushKey);
                 DatabaseReference OwnerRideRef = ref.child("ownerride");
                 DatabaseReference newOwnerRideRef = OwnerRideRef.push();
                 newOwnerRideRef.setValue(OR);
@@ -787,7 +834,6 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                 Context context = getApplicationContext();
                 CharSequence text = "Ride Started.. Please Wait while we fetch your Co-riders";
                 int duration = Toast.LENGTH_LONG;
-
                 Toast toast = Toast.makeText(context, text, duration);
                 toast.show();
             }
